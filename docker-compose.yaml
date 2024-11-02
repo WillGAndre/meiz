@@ -1,0 +1,76 @@
+version: "3"
+
+networks:
+  loki:
+
+services:
+  loki:
+    image: grafana/loki:2.9.2
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - loki
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    volumes:
+      - /var/log:/var/log
+      - ./suricata_logs:/suricata_logs  # Mount Suricata log directory
+      - ./config/promtail-config.yaml:/etc/promtail/config.yaml  # Promtail config
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - loki
+
+  grafana:
+    environment:
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    entrypoint:
+      - sh
+      - -euc
+      - |
+        mkdir -p /etc/grafana/provisioning/datasources
+        cat <<EOF > /etc/grafana/provisioning/datasources/ds.yaml
+        apiVersion: 1
+        datasources:
+        - name: Loki
+          type: loki
+          access: proxy 
+          orgId: 1
+          url: http://loki:3100
+          basicAuth: false
+          isDefault: true
+          version: 1
+          editable: false
+        EOF
+        /run.sh
+    image: grafana/grafana:latest
+    volumes:
+      - ./config/grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/main.yaml
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards
+    ports:
+      - "3000:3000"
+    networks:
+      - loki
+
+  suricata:
+    image: jasonish/suricata:latest
+    container_name: suricata
+    networks:
+      - loki
+    volumes:
+      - ./config/suricata.yaml:/etc/suricata/suricata.yaml  # Suricata config
+      - ./suricata_logs:/suricata_logs
+      - ./capture/capture.pcap:/capture.pcap
+    command: ["-c", "/etc/suricata/suricata.yaml", "-r", "/capture.pcap"]  # ["-T", "-c", "/etc/suricata/suricata.yaml"]
+    cap_add:
+      - sys_nice
+      - net_admin
+    restart: unless-stopped
+
+# TODO:
+# 1- Package as repo
+# 2- Set dir for pcap files (instead of single file)
+# 3- Pass in extra flags, run Suricata as IPS
