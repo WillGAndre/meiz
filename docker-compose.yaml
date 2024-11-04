@@ -16,7 +16,7 @@ services:
     image: grafana/promtail:2.9.2
     volumes:
       - /var/log:/var/log
-      - ./suricata_logs:/suricata_logs  # Mount Suricata log directory
+      - ./config/suricata_logs:/suricata_logs  # Suricata logs
       - ./config/promtail-config.yaml:/etc/promtail/config.yaml  # Promtail config
     command: -config.file=/etc/promtail/config.yaml
     networks:
@@ -62,15 +62,10 @@ services:
       - loki
     volumes:
       - ./config/suricata.yaml:/etc/suricata/suricata.yaml  # Suricata config
-      - ./suricata_logs:/suricata_logs
-      - ./capture/capture.pcap:/capture.pcap
-    command: ["-c", "/etc/suricata/suricata.yaml", "-r", "/capture.pcap"]  # ["-T", "-c", "/etc/suricata/suricata.yaml"]
+      - ./config/suricata_logs:/suricata_logs
+      - ./capture:/capture
+    command: ["-c", "/etc/suricata/suricata.yaml", "-r", "/capture", "--pcap-file-recursive"]
     cap_add:
       - sys_nice
       - net_admin
     restart: unless-stopped
-
-# TODO:
-# 1- Package as repo
-# 2- Set dir for pcap files (instead of single file)
-# 3- Pass in extra flags, run Suricata as IPS

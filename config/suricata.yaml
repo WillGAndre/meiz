@@ -6,8 +6,16 @@ outputs:
       filetype: regular
       filename: /suricata_logs/eve.json
       types:
-        - alert
-        - dns
-        - http
-        - tls
-        - flow
+        - alert           # Security alerts
+        - dns             # DNS logs
+        - http            # HTTP logs
+        - tls             # TLS/SSL traffic logs
+        - flow            # General flow information
+        - smtp            # SMTP traffic logs
+        - ssh             # SSH connection logs
+        - dhcp            # DHCP traffic logs
+        - smb             # SMB protocol logs
+        - nfs             # NFS protocol logs
+        - dnp3            # DNP3 protocol logs
+        - ftp             # FTP traffic logs
+        - rdp             # RDP (Remote Desktop Protocol) traffic logs
